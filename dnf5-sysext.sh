@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 # Check if we have dnf5 installed in the system
-type -P dn5 &>/dev/null || {
+type -P dnf5 &>/dev/null || {
     echo "ERROR: command dnf5 not found"
     exit 1
 }
