@@ -106,4 +106,19 @@ EOF
     fi
 }
 
-eval "$*"
+# Entrypoint
+function main() {
+    local ACTION=$1
+    case $ACTION in
+    install)
+        install "${@:2}"
+        exit
+        ;;
+    *)
+        echo "ERROR: $ACTION is not a valid subcommand"
+        exit 1
+        ;;
+    esac
+}
+
+main "$@"
