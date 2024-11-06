@@ -1,6 +1,9 @@
 #!/usr/bin/bash
 
 function install() {
+    # Skip confirmation to install (in that case, dont install)
+    local NO_INTERACT=${NO_INTERACT:-0}
+
     # Check if we have dnf5 installed in the system
     type -P dnf5 &>/dev/null || {
         echo "ERROR: command dnf5 not found"
@@ -14,7 +17,7 @@ function install() {
     }
 
     # Root directory for system extensions
-    EXTENSIONS_DIR="/var/lib/extensions"
+    EXTENSIONS_DIR="${EXTENSIONS_DIR:-/var/lib/extensions}"
 
     # Name of the extension
     EXT_NAME="$1"
@@ -24,7 +27,7 @@ function install() {
 
     # Check params
     if [ -z "$EXT_NAME" ] || [ "${#PKGS[@]}" -lt 1 ]; then
-        echo "Usage: ${0##*/} ${FUNCNAME[0]} EXTENSION_NAME PACKAGES..."
+        echo "Usage: [NO_INTERACT=0|1] [EXTENSIONS_DIR=DIR] ${0##*/} ${FUNCNAME[0]} EXTENSION_NAME PACKAGES..."
         exit 1
     fi
 
@@ -91,7 +94,10 @@ EOF
     echo "System extension $EXT_NAME created successfully"
 
     # Optionally activate the extension
-    read -r -p "Would you like to activate the extension now? [y/N]: " REPLY
+    local REPLY
+    REPLY=$( ((NO_INTERACT)) && echo 1)
+
+    [[ -z $REPLY ]] && read -r -p "Would you like to activate the extension now? [y/N]: " REPLY
     if [[ "$REPLY" =~ ^[Yy]$ ]]; then
         systemctl restart systemd-sysext
         echo "Activated $EXT_NAME. Run 'systemd-sysext status' to verify"
