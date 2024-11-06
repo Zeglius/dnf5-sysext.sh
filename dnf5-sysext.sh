@@ -46,7 +46,9 @@ function install() {
     # Install the packages to the specified directory
     echo "Installing packages to '$INSTALL_PATH'..."
     printf '  - %s\n' "${PKGS[@]}"
-    dnf5 install --installroot="$INSTALL_PATH" --use-host-config --assumeyes "${PKGS[@]}"
+    dnf5 install --installroot="$INSTALL_PATH" --use-host-config \
+        --assumeyes --setopt install_weak_deps=False "${PKGS[@]}"
+    dnf5 clean --installroot="$INSTALL_PATH" all
 
     # Verify installation
     # shellcheck disable=SC2181
