@@ -1,0 +1,3 @@
+Simple script that allows to prepare [Systemd extensions][sysext] with specified packages for Fedora (>=41).
+
+[sysext]: https://www.freedesktop.org/software/systemd/man/256/systemd-sysext.html
