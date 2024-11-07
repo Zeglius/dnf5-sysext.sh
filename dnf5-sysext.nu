@@ -6,26 +6,8 @@ let EXT_DIR = $"($EXTENSIONS_DIR)/($EXT_NAME)"
 
 let SUDOIF = if (is-admin) {""} else {"sudo"}
 
-
-# Create a temporary directory to store dnf5 transactions
-def "get transaction_dir" []: list<string> -> string {
-    let hash: string = $in | sort | reduce {|it, acc| $acc + " " + $it} | hash md5
-    "/var/cache/dnf5_sysext-" + $hash
-}
-
-# Create a dnf5 transaction from a list of packages. 
-# Outputs the path to the transaction
-def generate_pkgs_trans []: list<string> -> string {
-    let pkgs: list<string> = $in
-    let transdir = $pkgs | get transaction_dir
-    ^$SUDOIF mkdir -p $transdir
-    try {
-        ^$SUDOIF dnf5 -y install --use-host-config --store $transdir --setopt=install_weak_deps=False ($pkgs | str join)
-    } catch {|err|
-        ^$SUDOIF rm -rf $transdir
-        return null
-    }
-    return $transdir
+if ($EXT_NAME | str contains "/") {
+    error make -u {msg: "EXT_NAME cannot contain slashes"}
 }
 
 # Get a field from /etc/os-release
@@ -38,6 +20,9 @@ def "main clean" [] {
     ^$SUDOIF rm -vrfd /var/cache/dnf5_sysext-*
 }
 
+# Initialize a systemd extension directory, including `extension-release.NAME`.
+#
+# Use `EXT_NAME` to populate a custom extension
 def "main init" [] {
     # Create metadata
     let meta_file = $"($EXT_DIR)/usr/lib/extension-release.d/extension-release.($EXT_NAME)"
@@ -46,6 +31,9 @@ def "main init" [] {
     $meta_str | ^$"($SUDOIF)" tee $meta_file | ignore
     if ($meta_file | path exists) {
         print -e $"Extension ($EXT_NAME) was initialized"
+        return true
+    } else {
+        return false
     }
 }
 
@@ -65,25 +53,19 @@ def "main install" [
         exit 1
     }
 
-    # First prepare the transaction
-    let trans_path = $pkgs | generate_pkgs_trans
-
     # Deactivate sysext for now
     ^$SUDOIF systemctl stop systemd-sysext
 
     # Install extension
-    let installroot = $"($EXTENSIONS_DIR)/($extname)"
-    ^$SUDOIF mkdir -p $installroot
-    ^$SUDOIF dnf5 replay -y --use-host-config --ignore-extras --installroot $installroot $trans_path
+    main init
+    let installroot = $EXT_DIR
+    try {
+        ^$SUDOIF mkdir -p $installroot
+        ^$SUDOIF dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
+    } catch { error make {msg: "Something happened during installation step" } }
 
     # Delete os-release
     ^$SUDOIF rm $"($installroot)/usr/lib/os-release"
-
-    # Add metadata
-    let meta_path = $"($installroot)/usr/lib/extension-release.d/extension-release.($extname)"
-    let meta_str = $"ID=('ID'|os_info)\nVERSION_ID=('VERSION_ID'|os_info)\n"
-    ^$SUDOIF mkdir -p ($meta_path | path dirname)
-    $meta_str | save -f $meta_path
 
     # Ask to restart systemd-sysext
     if $now {
