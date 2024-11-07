@@ -89,9 +89,9 @@ def "main install" [
     if $now {
         ^systemctl start systemd-sysext
     } else {
-        let choice: string = input -n 1 "Do you wish to restart systemd-sysext? [y/N]: "
-            | str downcase ;
-        if $choice == "y" {
+        input -n 1 "Do you wish to restart systemd-sysext? [y/N]: "
+        | str downcase
+        | if $in == "y" {
             ^systemctl start systemd-sysext
         }
     }
