@@ -66,8 +66,8 @@ function install() {
         USR_OSRELEASE="$INSTALL_PATH/usr/lib/os-release"
         ETC_OSRELEASE="$INSTALL_PATH/etc/os-release"
         echo "Moving '$USR_OSRELEASE' to '$ETC_OSRELEASE'"
-        mv "$USR_OSRELEASE" "$ETC_OSRELEASE" || {
-            echo "ERROR: Couldnt move '$USR_OSRELEASE' to '$ETC_OSRELEASE'"
+        rm -f "$USR_OSRELEASE" "$ETC_OSRELEASE" || {
+            echo "ERROR: Couldnt remove '$USR_OSRELEASE' and '$ETC_OSRELEASE'"
             exit 1
         }
 
