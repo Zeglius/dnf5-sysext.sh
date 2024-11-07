@@ -1,6 +1,8 @@
 #!/usr/bin/env -S nu
 
 let EXTENSIONS_DIR: string = $env.EXTENSIONS_DIR? | default "/var/lib/extensions"
+let EXT_NAME: string = $env.EXT_NAME? | default "dnf5_sysext"
+let EXT_DIR = $"($EXTENSIONS_DIR)/($EXT_NAME)"
 
 let SUDOIF = if (is-admin) {""} else {"sudo"}
 
@@ -34,6 +36,17 @@ def os_info []: string -> string {
 
 def "main clean" [] {
     ^$SUDOIF rm -vrfd /var/cache/dnf5_sysext-*
+}
+
+def "main init" [] {
+    # Create metadata
+    let meta_file = $"($EXT_DIR)/usr/lib/extension-release.d/extension-release.($EXT_NAME)"
+    let meta_str = $"ID=('ID'|os_info)\nVERSION_ID=('VERSION_ID'|os_info)\n"
+    ^$"($SUDOIF)" mkdir -p ($meta_file | path dirname)
+    $meta_str | ^$"($SUDOIF)" tee $meta_file | ignore
+    if ($meta_file | path exists) {
+        print -e $"Extension ($EXT_NAME) was initialized"
+    }
 }
 
 # Install rpms in a system extension
