@@ -35,9 +35,6 @@ def "main init" [] {
     $meta_str | ^$"($SUDOIF)" tee $meta_file | ignore
     if ($meta_file | path exists) {
         print -e $"Extension ($EXT_NAME) was initialized"
-        return true
-    } else {
-        return false
     }
 }
 
