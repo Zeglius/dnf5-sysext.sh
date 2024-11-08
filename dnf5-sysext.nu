@@ -86,7 +86,7 @@ def "main install" [
     } catch { error make {msg: "Something happened during installation step" } }
 
     # Delete os-release
-    ^$"($SUDOIF)" rm $"($installroot)/usr/lib/os-release"
+    ^$"($SUDOIF)" rm -f $"($installroot)/usr/lib/os-release"
 
     # Ask to restart systemd-sysext
     if $now {
