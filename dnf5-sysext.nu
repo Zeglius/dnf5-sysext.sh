@@ -56,7 +56,6 @@ def "main list" [
     | if $json { return $in } else { $in }
     | from json
     | table -t none -i false
-    | ^column --table
 }
 
 # Install rpms in a system extension
