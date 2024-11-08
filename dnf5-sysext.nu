@@ -70,7 +70,7 @@ def "main install" [
         exit 1
     }
 
-    if (^dnf5 -q repoquery ...$pkgs | lines | length) == 0 {
+    if (^dnf5 -q repoquery ...$pkgs | lines -s | length) == 0 {
         error make -u {msg: "No package found"}
         exit 1
     }
