@@ -48,6 +48,14 @@ def "main start" [] {
     ^$"($SUDOIF)" systemctl start systemd-sysext
 }
 
+# List all systemd extensions
+def "main list" [] {
+    ^systemd-sysext list --json=short
+    | from json
+    | table -t none -i false
+    | ^column --table
+}
+
 # Install rpms in a system extension
 def "main install" [
     --extname = dnf5_default_sysext  # Extension name
