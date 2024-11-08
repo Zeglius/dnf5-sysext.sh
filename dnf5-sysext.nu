@@ -43,6 +43,11 @@ def "main stop" [] {
     ^$"($SUDOIF)" systemctl stop systemd-sysext
 }
 
+# Unmerge systemd sysexts
+def "main start" [] {
+    ^$"($SUDOIF)" systemctl start systemd-sysext
+}
+
 # Install rpms in a system extension
 def "main install" [
     --extname = dnf5_default_sysext  # Extension name
