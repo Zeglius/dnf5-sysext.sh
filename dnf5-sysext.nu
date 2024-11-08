@@ -49,8 +49,11 @@ def "main start" [] {
 }
 
 # List all systemd extensions
-def "main list" [] {
+def "main list" [
+    --json (-j)  # Output in json
+] {
     ^systemd-sysext list --json=short
+    | if $json { return $in } else { $in }
     | from json
     | table -t none -i false
     | ^column --table
