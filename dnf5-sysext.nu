@@ -84,4 +84,9 @@ def "main install" [
     }
 }
 
+# Pipe commands to dnf5 for an extension
+def --wrapped "main dnf5" [...rest: string] {
+    ^dnf5 --installroot $EXT_DIR --use-host-config ...$rest
+}
+
 def main [] {}
