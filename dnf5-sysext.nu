@@ -17,7 +17,7 @@ def os_info []: string -> string {
 }
 
 def "main clean" [] {
-    ^$SUDOIF rm -vrfd /var/cache/dnf5_sysext-*
+    ^$"($SUDOIF)" rm -vrfd /var/cache/dnf5_sysext-*
 }
 
 # Initialize a systemd extension directory, including `extension-release.NAME`.
@@ -39,7 +39,7 @@ def "main init" [] {
 
 # Unmerge systemd sysexts
 def "main stop" [] {
-    ^$SUDOIF systemctl stop systemd-sysext
+    ^$"($SUDOIF)" systemctl stop systemd-sysext
 }
 
 # Install rpms in a system extension
@@ -65,12 +65,12 @@ def "main install" [
     main init
     let installroot = $EXT_DIR
     try {
-        ^$SUDOIF mkdir -p $installroot
-        ^$SUDOIF dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
+        ^$"($SUDOIF)" mkdir -p $installroot
+        ^$"($SUDOIF)" dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
     } catch { error make {msg: "Something happened during installation step" } }
 
     # Delete os-release
-    ^$SUDOIF rm $"($installroot)/usr/lib/os-release"
+    ^$"($SUDOIF)" rm $"($installroot)/usr/lib/os-release"
 
     # Ask to restart systemd-sysext
     if $now {
