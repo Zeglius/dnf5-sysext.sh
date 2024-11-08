@@ -94,7 +94,6 @@ def "main list" [
 
 # Install rpms in a system extension
 def "main install" [
-    --extname = dnf5_default_sysext  # Extension name
     --now                            # Restart systemd-sysext after transaction
     ...pkgs: string                  # Packages to install
 ] {
