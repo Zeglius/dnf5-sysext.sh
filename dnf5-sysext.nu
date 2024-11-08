@@ -20,8 +20,9 @@ def os_info []: string -> string {
     | get $field
 }
 
+# Clean dnf5 cache of systemd extension
 def "main clean" [] {
-    ^$"($SUDOIF)" rm -vrfd /var/cache/dnf5_sysext-*
+    ^$"($SUDOIF)" dnf5 --installroot $EXT_DIR --use-host-config clean all
 }
 
 # Initialize a systemd extension directory, including `extension-release.NAME`.
@@ -84,6 +85,9 @@ def "main install" [
         ^$"($SUDOIF)" mkdir -p $installroot
         ^$"($SUDOIF)" dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
     } catch { error make {msg: "Something happened during installation step" } }
+
+    # Clean dnf5 cache
+    main clean
 
     # Delete os-release
     ^$"($SUDOIF)" rm -f $"($installroot)/usr/lib/os-release"
