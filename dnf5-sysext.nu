@@ -78,7 +78,7 @@ def "main install" [
     main stop
 
     # Install extension
-    main init
+    if not ($EXT_NAME in (main list)) { main init }
     let installroot = $EXT_DIR
     try {
         ^$"($SUDOIF)" mkdir -p $installroot
