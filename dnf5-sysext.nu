@@ -39,6 +39,39 @@ def "main init" [] {
     }
 }
 
+# Delete the system extension.
+#
+# Use this ONLY when you want to start from zero
+def "main remove" [
+    --assumeyes (-y)  # Confirm removal
+] {
+    let extname = $EXT_NAME
+    let target = ^systemd-sysext list --json=short
+    | from json
+    | where name == $extname
+    | get 0?
+    | default {}
+
+    if $target.path? == null {
+        error make -u { msg: $"Extension '($extname)' not found" }
+    } else {
+        # We found the extension
+        if not (is-terminal --stdin) and not $assumeyes {
+            error make -u {msg: "Cannot access stdin. Use flag --assumeyes or run in an interactive terminal"}
+        }
+        # Check if we want to delete the extension
+        if not $assumeyes {
+            input $"Do you want to remove '($target.path)' [y/N]: "
+            | str downcase
+            | if $in != "y" {return}
+        }
+        main stop
+        ^$"($SUDOIF)" rm -Ir $target.path
+        echo "deleting something..."
+        print -e $"Extension ($extname) was removed"
+    }
+}
+
 # Unmerge/stop systemd extensions
 def "main stop" [] {
     ^$"($SUDOIF)" systemctl stop systemd-sysext
