@@ -39,12 +39,12 @@ def "main init" [] {
     }
 }
 
-# Unmerge systemd sysexts
+# Unmerge/stop systemd extensions
 def "main stop" [] {
     ^$"($SUDOIF)" systemctl stop systemd-sysext
 }
 
-# Unmerge systemd sysexts
+# Merge/start systemd extensions
 def "main start" [] {
     ^$"($SUDOIF)" systemctl start systemd-sysext
 }
