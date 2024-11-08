@@ -13,7 +13,11 @@ if ($EXT_NAME | str contains "/") {
 # Get a field from /etc/os-release
 def os_info []: string -> string {
     let field = $in
-    ^bash -c $"source /etc/os-release && echo $($field)"
+    open /etc/os-release
+    | lines
+    | split column "=" key value
+    | transpose --header-row --as-record
+    | get $field
 }
 
 def "main clean" [] {
