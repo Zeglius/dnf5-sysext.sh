@@ -8,6 +8,10 @@ This script relies on [Nushell](https://www.nushell.sh/), which can be easly ins
 $ brew install nushell
 ```
 
+> [!WARNING]
+> - THIS SCRIPT IS IN EARLY STAGES. Use at your own risk
+> - Do not deactivate systemd extensions if using an imporant program installed in it (Desktop Enviroments, databases, etc)
+
 ## Quick start
 
 We will install Docker in an extension as an example.
