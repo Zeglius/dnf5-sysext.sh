@@ -107,9 +107,6 @@ def "main install" [
         exit 1
     }
 
-    # Deactivate sysext for now
-    main stop
-
     # Install extension
     if not ($EXT_NAME in (main list)) { main init }
     let installroot = $EXT_DIR
@@ -126,12 +123,12 @@ def "main install" [
 
     # Ask to restart systemd-sysext
     if $now {
-        ^systemctl start systemd-sysext
+        ^systemctl restart systemd-sysext
     } else {
         input -n 1 "Do you wish to restart systemd-sysext? [y/N]: "
         | str downcase
         | if $in == "y" {
-            ^systemctl start systemd-sysext
+            ^systemctl restart systemd-sysext
         }
     }
 }
