@@ -114,13 +114,11 @@ def "main install" [
     ...pkgs: string                  # Packages to install
 ] {
     if ($pkgs | length) <= 0 {
-        print -e "ERROR: No package was specified"
-        exit 1
+        error make -u {msg: "No package was specified"}
     }
 
     if (^dnf5 -q repoquery ...$pkgs | lines -s | length) == 0 {
         error make -u {msg: "No package found"}
-        exit 1
     }
 
     # Install extension
