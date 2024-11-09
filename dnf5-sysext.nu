@@ -102,14 +102,22 @@ def "main start" [] {
 def "main disable" [
     --now      # Stop after disabling service
 ] {
-    ^$"($SUDOIF)" systemctl disable (if $now {"--now"} else {""}) systemd-sysext
+    if $now {
+        ^$"($SUDOIF)" systemctl disable --now systemd-sysext
+    } else {
+        ^$"($SUDOIF)" systemctl disable systemd-sysext
+    }
 }
 
 # Disable systemd-sysext. Equivalent to 'systemctl disable systemd-sysext'
 def "main enable" [
     --now      # Stop after disabling service
 ] {
-    ^$"($SUDOIF)" systemctl enable (if $now {"--now"} else {""}) systemd-sysext
+    if $now {
+        ^$"($SUDOIF)" systemctl enable --now systemd-sysext
+    } else {
+        ^$"($SUDOIF)" systemctl enable systemd-sysext
+    }
 }
 
 # List all systemd extensions
