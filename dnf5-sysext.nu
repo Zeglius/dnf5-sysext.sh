@@ -69,7 +69,6 @@ def "main remove" [
         let was_active = ^systemctl is-active systemd-sysexts | str trim | $in == "active"
         if $was_active { main stop }
         ^$"($SUDOIF)" rm -Ir $target.path
-        echo "deleting something..."
         print -e $"Extension ($extname) was removed"
         if $was_active { main start }
     }
