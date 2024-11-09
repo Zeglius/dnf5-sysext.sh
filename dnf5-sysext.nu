@@ -20,6 +20,22 @@ def os_info []: string -> string {
     | get $field
 }
 
+# Display a yes/no dialog, and run closures depending on the answer
+def askyesno [
+    msg: string             # Dialog to display
+    yesclosure: closure     # Run when answer is 'y'
+    noclosure?: closure     # Run when answer is not 'y'
+] {
+    input ($msg | str trim | $"($in) [y/N]: ")
+    | str downcase
+    | str trim
+    | if $in == "y" {
+        do $yesclosure
+    } else if $noclosure != null {
+        do $noclosure
+    }
+}
+
 # Clean dnf5 cache of systemd extension
 def "main clean" [] {
     ^$"($SUDOIF)" dnf5 --installroot $EXT_DIR --use-host-config clean all
@@ -61,9 +77,7 @@ def "main remove" [
         }
         # Check if we want to delete the extension
         if not $assumeyes {
-            input $"Do you want to remove '($target.path)' [y/N]: "
-            | str downcase
-            | if $in != "y" {return}
+            askyesno $"Do you want to remove '($target.path)'" {||} {return}
         }
         # Whenever systemd-sysext was 
         let was_active = ^systemctl is-active systemd-sysexts | str trim | $in == "active"
@@ -127,9 +141,7 @@ def "main install" [
     if $now {
         ^systemctl restart systemd-sysext
     } else {
-        input -n 1 "Do you wish to restart systemd-sysext? [y/N]: "
-        | str downcase
-        | if $in == "y" {
+        askyesno "Do you wish to restart systemd-sysext?" {
             ^systemctl restart systemd-sysext
         }
     }
