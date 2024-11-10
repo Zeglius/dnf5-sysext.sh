@@ -145,10 +145,6 @@ def "main install" [
         error make -u {msg: "No package was specified"}
     }
 
-    if (^dnf5 -q repoquery ...$pkgs | lines -s | length) == 0 {
-        error make -u {msg: "No package found"}
-    }
-
     # Install extension
     if not ($EXT_NAME in (main list)) { main init }
     let installroot = $EXT_DIR
