@@ -183,5 +183,27 @@ def main [...command] {
     exit 1
 }
 
+# Show some examples of usage
+def "main example" [
+    topic?: string
+    --list          # List available topics
+] {
+    let examples = {
+        "quick-start": (open ./README.md | into string)
+    }
+    let choose_msg = "Available topics: \n" + ($examples | columns | str join "\n")
+    let topic = $topic | default ""
+    let topic = $examples | columns | sort-by { str distance $topic } | $in.0 | default ""
+
+    if $topic == null or $list { print $choose_msg; return }
+    try {
+        $examples
+        | get $topic
+        | if (which glow | is-not-empty) { ^glow $in } else { $in }
+    } catch { error make -u {msg: ("Topic doesnt exist. " + $choose_msg)} }
+}
+
+alias "main help example" = main example
+alias "main usage" = main example
 
 alias "main help" = main --help
