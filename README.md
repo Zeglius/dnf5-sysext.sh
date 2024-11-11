@@ -54,3 +54,15 @@ Afterwards, all left is enabling docker.
 ```sh
 $ systemctl enable --now docker
 ```
+
+## Troubleshoot guide
+
+As its experimental state implies, this script could enable your PC inoperable. Here is a quick guide to fix it:
+
+1. Boot into grub, press <kbd>e</kbd> to edit the kernel parameters, and append `systemd.mask=systemd-sysext.service` this to the penultimate line, <kbd>Ctrl</kbd> + <kbd>x</kbd> to boot.
+
+2. Once logged in, remove the contents of `/var/lib/extensions/WHATEVER_EXT_NAME`, by default being `/var/lib/extensions/dnf5_sysext`
+
+```sh
+sudo rm -rf /var/lib/extensions/dnf5_sysext
+```
