@@ -57,7 +57,7 @@ $ systemctl enable --now docker
 
 ## Troubleshoot guide
 
-As its experimental state implies, this script could enable your PC inoperable. Here is a quick guide to fix it:
+As its experimental state implies, this script can render your PC inoperable. Here is a quick guide to fix it:
 
 1. Boot into grub, press <kbd>e</kbd> to edit the kernel parameters, and append `systemd.mask=systemd-sysext.service` this to the penultimate line, <kbd>Ctrl</kbd> + <kbd>x</kbd> to boot.
 
