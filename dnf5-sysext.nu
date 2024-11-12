@@ -1,8 +1,14 @@
 #!/usr/bin/env -S nu
 
-let EXTENSIONS_DIR: string = $env.EXTENSIONS_DIR? | default "/var/lib/extensions"
-let EXT_NAME: string = $env.EXT_NAME? | default "dnf5_sysext"
-let EXT_DIR = $"($EXTENSIONS_DIR)/($EXT_NAME)"
+export-env {
+    $env.EXTENSIONS_DIR = $env.EXTENSIONS_DIR? | default "/var/lib/extensions"
+    $env.EXT_NAME = $env.EXT_NAME? | default "dnf5_sysext"
+    $env.EXT_DIR = $"($env.EXTENSIONS_DIR)/($env.EXT_NAME)"
+
+    if ($env.EXT_NAME | str contains "/") {
+        error make -u {msg: "EXT_NAME cannot contain slashes"}
+    }
+}
 
 def --wrapped sudoif [...rest] {
     if (is-admin) {
@@ -10,10 +16,6 @@ def --wrapped sudoif [...rest] {
     } else {
         ^sudo ...$rest
     }
-}
-
-if ($EXT_NAME | str contains "/") {
-    error make -u {msg: "EXT_NAME cannot contain slashes"}
 }
 
 # Get a field from /etc/os-release
@@ -44,7 +46,7 @@ def askyesno [
 
 # Clean dnf5 cache of systemd extension
 def "main clean" [] {
-    sudoif dnf5 --installroot $EXT_DIR --use-host-config clean all
+    sudoif dnf5 --installroot $env.EXT_DIR --use-host-config clean all
 }
 
 # Initialize a systemd extension directory, including `extension-release.NAME`.
@@ -52,12 +54,12 @@ def "main clean" [] {
 # Use `EXT_NAME` to populate a custom extension
 def "main init" [] {
     # Create metadata
-    let meta_file = $"($EXT_DIR)/usr/lib/extension-release.d/extension-release.($EXT_NAME)"
+    let meta_file = $"($env.EXT_DIR)/usr/lib/extension-release.d/extension-release.($env.EXT_NAME)"
     let meta_str = $"ID=('ID'|os_info)\nVERSION_ID=('VERSION_ID'|os_info)\n"
     sudoif mkdir -p ($meta_file | path dirname)
     $meta_str | sudoif tee $meta_file | ignore
     if ($meta_file | path exists) {
-        print -e $"Extension ($EXT_NAME) was initialized"
+        print -e $"Extension ($env.EXT_NAME) was initialized"
     }
 }
 
@@ -67,7 +69,7 @@ def "main init" [] {
 def "main remove" [
     --assumeyes (-y)  # Confirm removal
 ] {
-    let extname = $EXT_NAME
+    let extname = $env.EXT_NAME
     let target = ^systemd-sysext list --json=short
     | from json
     | where name == $extname
@@ -146,8 +148,8 @@ def "main install" [
     }
 
     # Install extension
-    if not ($EXT_NAME in (main list)) { main init }
-    let installroot = $EXT_DIR
+    if not ($env.EXT_NAME in (main list)) { main init }
+    let installroot = $env.EXT_DIR
     try {
         sudoif mkdir -p $installroot
         sudoif dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
@@ -171,7 +173,7 @@ def "main install" [
 
 # Pipe commands to dnf5 for an extension
 def --wrapped "main dnf5" [...rest: string] {
-    sudoif dnf5 --installroot $EXT_DIR --use-host-config ...$rest
+    sudoif dnf5 --installroot $env.EXT_DIR --use-host-config ...$rest
 }
 
 def main [...command] {
