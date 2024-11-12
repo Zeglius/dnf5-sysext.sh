@@ -10,7 +10,7 @@ $ brew install nushell
 
 > [!WARNING]
 > - THIS SCRIPT IS IN EARLY STAGES. Use at your own risk
-> - Do not deactivate systemd extensions if using an imporant program installed in it (Desktop Enviroments, databases, etc)
+> - Do not deactivate systemd extensions if its being used by critical programs installed in it (Desktop Enviroments, databases, etc).
 
 ## Quick start
 
