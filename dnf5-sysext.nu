@@ -141,7 +141,7 @@ def "main install" [
     --now                            # Restart systemd-sysext after transaction
     ...pkgs: string                  # Packages to install
 ] {
-    if ($pkgs | length) <= 0 {
+    if ($pkgs | is-empty) {
         error make -u {msg: "No package was specified"}
     }
 
