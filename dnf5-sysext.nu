@@ -18,6 +18,12 @@ def --wrapped sudoif [...rest] {
     }
 }
 
+def with-cd [path: path, closure: closure] {
+    cd $path
+    $env.WITHCD_LVL = ($env.WITHCD_LVL? | default 0 | into int) + 1
+    do $closure
+}
+
 # Get a field from /etc/os-release
 def os_info []: string -> string {
     let field = $in
