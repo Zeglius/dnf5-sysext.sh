@@ -157,23 +157,55 @@ def "main list" [
 
 # Install rpms in a system extension
 def "main install" [
-    --now                            # Restart systemd-sysext after transaction
-    ...pkgs: string                  # Packages to install
+    --now                # Restart systemd-sysext after transaction.
+    --overlay            # EXPERIMENTAL. Use 'bootc usroverlay' to create a more lightweight extension. Only use in system with bootc.
+    ...pkgs: string      # Packages to install.
 ] {
     if ($pkgs | is-empty) {
         error make -u {msg: "No package was specified"}
     }
 
-    # Install extension
-    if not ($env.EXT_NAME in (main list)) { main init }
     let installroot = $env.EXT_DIR
-    try {
-        sudoif mkdir -p $installroot
-        sudoif dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
-    } catch { error make {msg: "Something happened during installation step" } }
+    if not ($env.EXT_NAME in (main list)) { main init }
+    if not $overlay {
+        # Legacy method (at the time of writting 13/11/2024)
+        try {
+            sudoif mkdir -p $installroot
+            sudoif dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
+        } catch { error make {msg: "Something happened during installation step" } }
+        # Clean dnf5 cache
+        main clean
+    } else {
+        # Experimental method. Use 'bootc usroverlay' to fetch only 
+        # modified/new files from a transaction.
 
-    # Clean dnf5 cache
-    main clean
+        # Check we are in a system with bootc
+        if (which bootc | is-empty) { error make -u {msg: "'bootc' not found. Try without the '--overlay' flag."} }
+
+        # Enable the overlay
+        try { sudoif bootc usroverlay }
+
+        # Install stuff
+        try {sudoif dnf5 install -y ...$pkgs}
+        # Clean dnf5 cache
+        sudoif dnf5 clean all -y
+
+        # Find the upper layer
+        let upper_dir: path = do { 
+            let mounts = ^findmnt /usr -t overlay --json 
+                | from json
+                | $in.filesystems
+                | update options { split row "," | split column "=" | transpose -r -d };
+
+            let usroverlay: record = $mounts | where { 
+                $in.source == "overlay" and $in.options.lowerdir == "usr" 
+            } | first
+
+            let upper_dir = $usroverlay | get options.upperdir | path expand
+            $upper_dir
+        }
+        try {sudoif cp -a $"($upper_dir)/." $installroot}
+    }
 
     # Delete os-release
     sudoif rm -f $"($installroot)/usr/lib/os-release"
