@@ -10,45 +10,49 @@ export-env {
     }
 }
 
-def --wrapped sudoif [...rest] {
-    if (is-admin) {
-        run-external $rest.0? ...($rest | range 1..-1 | default [])
-    } else {
-        ^sudo ...$rest
+module internal {
+    export def --wrapped sudoif [...rest] {
+        if (is-admin) {
+            run-external $rest.0? ...($rest | range 1..-1 | default [])
+        } else {
+            ^sudo ...$rest
+        }
+    }
+
+    export def with-cd [path: path, closure: closure] {
+        cd $path
+        $env.WITHCD_LVL = ($env.WITHCD_LVL? | default 0 | into int) + 1
+        do $closure
+    }
+
+    # Get a field from /etc/os-release
+    export def os_info []: string -> string {
+        let field = $in
+        open /etc/os-release
+        | lines
+        | split column "=" key value
+        | transpose --header-row --as-record
+        | get $field
+    }
+
+    # Display a yes/no dialog, and run closures depending on the answer
+    export def askyesno [
+        msg: string             # Dialog to display
+        yesclosure: closure     # Run when answer is 'y'
+        noclosure?: closure     # Run when answer is not 'y'
+    ] {
+        input ($msg | str trim | $"($in) [y/N]: ")
+        | str downcase
+        | str trim
+        | if $in == "y" {
+            do $yesclosure
+        } else if $noclosure != null {
+            do $noclosure
+        }
     }
 }
 
-def with-cd [path: path, closure: closure] {
-    cd $path
-    $env.WITHCD_LVL = ($env.WITHCD_LVL? | default 0 | into int) + 1
-    do $closure
-}
-
-# Get a field from /etc/os-release
-def os_info []: string -> string {
-    let field = $in
-    open /etc/os-release
-    | lines
-    | split column "=" key value
-    | transpose --header-row --as-record
-    | get $field
-}
-
-# Display a yes/no dialog, and run closures depending on the answer
-def askyesno [
-    msg: string             # Dialog to display
-    yesclosure: closure     # Run when answer is 'y'
-    noclosure?: closure     # Run when answer is not 'y'
-] {
-    input ($msg | str trim | $"($in) [y/N]: ")
-    | str downcase
-    | str trim
-    | if $in == "y" {
-        do $yesclosure
-    } else if $noclosure != null {
-        do $noclosure
-    }
-}
+use internal *
 
 # Clean dnf5 cache of systemd extension
 def "main clean" [] {
