@@ -71,6 +71,13 @@ def "main init" [] {
     if ($meta_file | path exists) {
         print -e $"Extension ($env.EXT_NAME) was initialized"
     }
+
+    # Populate bin symlink
+    do {
+        let usr_bin = ($env.EXT_DIR | path join usr/bin)
+        sudoif mkdir -p $usr_bin
+        sudoif ln -Tsrf $usr_bin ($env.EXT_DIR | path join bin)
+    }
 }
 
 # Delete the system extension.
