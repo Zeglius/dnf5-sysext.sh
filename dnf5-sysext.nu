@@ -50,6 +50,28 @@ module internal {
             do $noclosure
         }
     }
+
+    export def findmnt [path?: path, --type (-t): string] {
+        let type_p: list = if ($type | is-not-empty) {
+            [-t, $type]
+        } else {[]}
+
+        if ($path | is-not-empty) {
+            ^findmnt $path ...$type_p --json
+                    | from json
+                    | $in.filesystems
+        } else {
+            ^findmnt ...$type_p --json
+                | from json
+                | $in.filesystems
+        } | update options {
+            split row ","
+            | split column "="
+            | transpose -r -d
+            | update cells {$in | default ""}
+            | into record
+        }
+    }
 }
 
 use internal *
@@ -191,14 +213,11 @@ def "main install" [
         sudoif dnf5 clean all -y
 
         # Find the upper layer
-        let upper_dir: path = do { 
-            let mounts = ^findmnt /usr -t overlay --json 
-                | from json
-                | $in.filesystems
-                | update options { split row "," | split column "=" | transpose -r -d };
+        let upper_dir: path = do {
+            let mounts = findmnt /usr -t overlay
 
-            let usroverlay: record = $mounts | where { 
-                $in.source == "overlay" and $in.options.lowerdir == "usr" 
+            let usroverlay: record = $mounts | where {
+                $in.source == "overlay" and $in.options.lowerdir == "usr"
             } | first
 
             let upper_dir = $usroverlay | get options.upperdir | path expand
