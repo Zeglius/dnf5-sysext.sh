@@ -4,6 +4,7 @@ export-env {
     $env.EXTENSIONS_DIR = $env.EXTENSIONS_DIR? | default "/var/lib/extensions"
     $env.EXT_NAME = $env.EXT_NAME? | default "dnf5_sysext"
     $env.EXT_DIR = $"($env.EXTENSIONS_DIR)/($env.EXT_NAME)"
+    $env.NU_LOG_LEVEL = if ($env.DEBUG? == "1") {"DEBUG"} else {""}
 
     if ($env.EXT_NAME | str contains "/") {
         error make -u {msg: "EXT_NAME cannot contain slashes"}
@@ -12,9 +13,12 @@ export-env {
 
 module internal {
     export def --wrapped sudoif [...rest] {
+        use std log
         if (is-admin) {
+            log debug $"run-external ($rest.0?) ($rest | range 1..-1 | default [])"
             run-external $rest.0? ...($rest | range 1..-1 | default [])
         } else {
+            log debug $"sudo (echo ...$rest)"
             ^sudo ...$rest
         }
     }
@@ -23,6 +27,38 @@ module internal {
         cd $path
         $env.WITHCD_LVL = ($env.WITHCD_LVL? | default 0 | into int) + 1
         do $closure
+    }
+
+    # Run a closure inside an writable overlay, with the lower layer being the root filesystem.
+    export def with-overlay [
+        closure: closure
+    ] {
+        let mountpoint = ^mktemp -d
+        let opts = {
+            lowerdir: /
+            upperdir: $env.EXT_DIR
+            workdir: /var/cache/dnf5_sysext/workdir
+        }
+
+        sudoif mkdir -p $opts.workdir
+
+        let opts_s = [
+            "-t", "overlay", "overlay"
+            "-o", $"lowerdir=($opts.lowerdir),upperdir=($opts.upperdir),workdir=($opts.workdir)"
+        ]
+
+        try {
+            sudoif mount ...$opts_s $mountpoint
+            with-cd $mountpoint $closure
+            sudoif umount --type overlay --lazy $mountpoint
+            sudoif rm -rf $opts.workdir
+            sudoif rm -r $mountpoint
+        } catch {|err|
+            try { sudoif umount --type overlay --lazy $mountpoint }
+            try { sudoif rm -rf $opts.workdir }
+            try { rm -r $mountpoint }
+            error make -u $err
+        }
     }
 
     # Get a field from /etc/os-release
@@ -179,51 +215,78 @@ def "main list" [
 
 # Install rpms in a system extension
 def "main install" [
-    --now                # Restart systemd-sysext after transaction.
-    --overlay            # EXPERIMENTAL. Use 'bootc usroverlay' to create a more lightweight extension. Only use in system with bootc.
-    ...pkgs: string      # Packages to install.
+    --now                           # Restart systemd-sysext after transaction.
+    --mode: string = "default"      #
+    --list-modes (-l)               # List available installation modes.
+    ...pkgs: string                 # Packages to install.
 ] {
+    let modes = [
+        [name, description];
+        [default, "Utilize 'dnf5 --installroot=EXT_DIR'"]
+        [bootc-overlay, "EXPERIMENTAL. Use 'bootc usroverlay' to create a more lightweight extension. Only use in system with bootc."]
+        [overlayfs, "Mount an overlayfs. with lowerdir being '/', and upperdir to EXT_DIR"]
+    ]
+    if $list_modes { $modes | table -t none -i false | print ; return }
+
     if ($pkgs | is-empty) {
         error make -u {msg: "No package was specified"}
     }
 
     let installroot = $env.EXT_DIR
     if not ($env.EXT_NAME in (main list)) { main init }
-    if not $overlay {
-        # Legacy method (at the time of writting 13/11/2024)
-        try {
-            sudoif mkdir -p $installroot
-            sudoif dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
-        } catch { error make {msg: "Something happened during installation step" } }
-        # Clean dnf5 cache
-        main clean
-    } else {
-        # Experimental method. Use 'bootc usroverlay' to fetch only 
-        # modified/new files from a transaction.
+    match $mode {
+        "default" => {
+            # Legacy method (at the time of writting 13/11/2024)
+            try {
+                sudoif mkdir -p $installroot
+                sudoif dnf5 install -y --use-host-config --installroot $installroot ...$pkgs
+            } catch { error make {msg: "Something happened during installation step" } }
+            # Clean dnf5 cache
+            main clean
+        },
 
-        # Check we are in a system with bootc
-        if (which bootc | is-empty) { error make -u {msg: "'bootc' not found. Try without the '--overlay' flag."} }
+        "bootc-overlay" => {
+            # Experimental method. Use 'bootc usroverlay' to fetch only 
+            # modified/new files from a transaction.
 
-        # Enable the overlay
-        try { sudoif bootc usroverlay }
+            # Check we are in a system with bootc
+            if (which bootc | is-empty) { error make -u {msg: "'bootc' not found. Try without the '--overlay' flag."} }
 
-        # Install stuff
-        try {sudoif dnf5 install -y ...$pkgs}
-        # Clean dnf5 cache
-        sudoif dnf5 clean all -y
+            # Enable the overlay
+            try { sudoif bootc usroverlay }
 
-        # Find the upper layer
-        let upper_dir: path = do {
-            let mounts = findmnt /usr -t overlay
+            # Install stuff
+            try {sudoif dnf5 install -y ...$pkgs}
+            # Clean dnf5 cache
+            sudoif dnf5 clean all -y
 
-            let usroverlay: record = $mounts | where {
-                $in.source == "overlay" and $in.options.lowerdir == "usr"
-            } | first
+            # Find the upper layer
+            let upper_dir: path = do {
+                let mounts = findmnt /usr -t overlay
 
-            let upper_dir = $usroverlay | get options.upperdir | path expand
-            $upper_dir
+                let usroverlay: record = $mounts | where {
+                    $in.source == "overlay" and $in.options.lowerdir == "usr"
+                } | first
+
+                let upper_dir = $usroverlay | get options.upperdir | path expand
+                $upper_dir
+            }
+            try {sudoif cp -a $"($upper_dir)/." $installroot}
+        },
+
+        "overlayfs" => {
+            with-overlay {
+                main stop
+                sudoif dnf5 --installroot $env.PWD install ...$pkgs
+                sudoif dnf5 --installroot $env.PWD clean all
+            }
+        },
+
+        _ => {
+            error make -u {msg: ("Invalid mode selected. Use one of the following:\n"
+            + ($modes.name | to yaml | str trim)
+            )}
         }
-        try {sudoif cp -a $"($upper_dir)/." $installroot}
     }
 
     # Delete os-release
