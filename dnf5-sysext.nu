@@ -108,6 +108,10 @@ module internal {
             | into record
         }
     }
+
+    export def list_ext [] {
+        ^systemd-sysext list --json=short | from json
+    }
 }
 
 use internal *
@@ -207,9 +211,8 @@ def "main enable" [
 def "main list" [
     --json (-j)  # Output in json
 ] {
-    ^systemd-sysext list --json=short
-    | if $json { return $in } else { $in }
-    | from json
+    list_ext
+    | if ($json) {$in | to json | return $in} else {$in}
     | table -t none -i false
 }
 
@@ -233,7 +236,7 @@ def "main install" [
     }
 
     let installroot = $env.EXT_DIR
-    if not ($env.EXT_NAME in (main list)) { main init }
+    if not ($env.EXT_NAME in (list_ext | get name)) { main init }
     match $mode {
         "default" => {
             # Legacy method (at the time of writting 13/11/2024)
