@@ -129,7 +129,7 @@ def "main init" [] {
     let meta_file = $"($env.EXT_DIR)/usr/lib/extension-release.d/extension-release.($env.EXT_NAME)"
     let meta_str = $"ID=('ID'|os_info)\nVERSION_ID=('VERSION_ID'|os_info)\n"
     sudoif mkdir -p ($meta_file | path dirname)
-    $meta_str | sudoif tee $meta_file | ignore
+    $meta_str | ^sudo tee $meta_file | ignore
     if ($meta_file | path exists) {
         print -e $"Extension ($env.EXT_NAME) was initialized"
     }
