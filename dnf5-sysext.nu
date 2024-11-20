@@ -127,9 +127,12 @@ def "main clean" [] {
 def "main init" [] {
     # Create metadata
     let meta_file = $"($env.EXT_DIR)/usr/lib/extension-release.d/extension-release.($env.EXT_NAME)"
+    let meta_file_etc = $"($env.EXT_DIR)/etc/extension-release.d/extension-release.($env.EXT_NAME)"
     let meta_str = $"ID=('ID'|os_info)\nVERSION_ID=('VERSION_ID'|os_info)\n"
     sudoif mkdir -p ($meta_file | path dirname)
+    sudoif mkdir -p ($meta_file_etc | path dirname)
     $meta_str | ^sudo tee $meta_file | ignore
+    $meta_str | ^sudo tee $meta_file_etc | ignore
     if ($meta_file | path exists) {
         print -e $"Extension ($env.EXT_NAME) was initialized"
     }
