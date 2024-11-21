@@ -188,7 +188,7 @@ def "main start" [] {
     sudoif systemctl start systemd-sysext
 }
 
-# Enable systemd-sysext. Equivalent to 'systemctl enable systemd-sysext'
+# Disable systemd-sysext. Equivalent to 'systemctl disable systemd-sysext'
 def "main disable" [
     --now      # Stop after disabling service
 ] {
@@ -199,7 +199,7 @@ def "main disable" [
     }
 }
 
-# Disable systemd-sysext. Equivalent to 'systemctl disable systemd-sysext'
+# Enable systemd-sysext. Equivalent to 'systemctl enable systemd-sysext'
 def "main enable" [
     --now      # Stop after disabling service
 ] {
